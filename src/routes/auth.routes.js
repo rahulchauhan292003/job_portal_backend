@@ -8,6 +8,7 @@ const {
   updateUserStatus,
   getRecruiters,
   getRecruiterDetails,
+  createRecruiter,
 } = require("../controllers/auth.controller");
 
 const validate = require("../middleware/validate.middleware");
@@ -16,6 +17,7 @@ const {
   signupSchema,
   loginSchema,
   updateUserStatusSchema,
+  createRecruiterSchema,
 } = require("../validators/auth.validator");
 
 const authMiddleware = require("../middleware/auth.middleware");
@@ -36,6 +38,14 @@ router.patch(
 );
 
 router.get("/recruiters", authMiddleware, allowRoles("admin"), getRecruiters);
+
+router.post(
+  "/recruiters",
+  authMiddleware,
+  allowRoles("admin"),
+  validate(createRecruiterSchema),
+  createRecruiter,
+);
 
 router.get(
   "/recruiters/:recruiterId",

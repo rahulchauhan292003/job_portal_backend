@@ -89,6 +89,32 @@ const updateUserStatus = async (userId, status) => {
   return user;
 };
 
+const createRecruiter = async ({ name, email, password }) => {
+  const existingUser = await User.findOne({ email });
+
+  if (existingUser) {
+    throw new ApiError(409, "Email is already registered");
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const recruiter = await User.create({
+    name,
+    email,
+    password: hashedPassword,
+    role: "recruiter",
+    status: "active",
+  });
+
+  return {
+    id: recruiter._id,
+    name: recruiter.name,
+    email: recruiter.email,
+    role: recruiter.role,
+    status: recruiter.status,
+  };
+};
+
 const getRecruiters = async () => {
   return User.find({ role: "recruiter" })
     .select("-password")
@@ -96,7 +122,6 @@ const getRecruiters = async () => {
 };
 
 const getRecruiterDetails = async (recruiterId) => {
-
   // console.log("-->",recruiterId)
   const recruiter = await User.findOne({
     _id: recruiterId,
@@ -162,6 +187,7 @@ module.exports = {
   login,
   getUsers,
   updateUserStatus,
-    getRecruiters,
+  createRecruiter,
+  getRecruiters,
   getRecruiterDetails,
 };

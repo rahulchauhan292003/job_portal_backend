@@ -61,6 +61,12 @@ const jobSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    
+    status: {
+      type: String,
+      enum: ["active", "closed", "deleted"],
+      default: "active",
+    },
 
     questions: {
       type: [questionSchema],

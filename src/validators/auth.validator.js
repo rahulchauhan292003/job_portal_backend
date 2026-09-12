@@ -30,15 +30,28 @@ const loginSchema = yup.object({
 const updateUserStatusSchema = yup.object({
   status: yup
     .string()
-    .oneOf(
-      ["active", "inactive", "blocked"],
-      "Invalid user status"
-    )
+    .oneOf(["active", "inactive", "blocked"], "Invalid user status")
     .required("Status is required"),
+});
+
+const createRecruiterSchema = yup.object({
+  name: yup.string().trim().required("Name is required"),
+
+  email: yup
+    .string()
+    .trim()
+    .email("Invalid email")
+    .required("Email is required"),
+
+  password: yup
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .required("Password is required"),
 });
 
 module.exports = {
   signupSchema,
   loginSchema,
-  updateUserStatusSchema
+  updateUserStatusSchema,
+  createRecruiterSchema,
 };

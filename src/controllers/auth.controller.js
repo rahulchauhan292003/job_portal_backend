@@ -71,6 +71,16 @@ const getRecruiterDetails = asyncHandler(async (req, res) => {
   });
 });
 
+const createRecruiter = asyncHandler(async (req, res) => {
+  const recruiter = await authService.createRecruiter(req.body);
+
+  res.status(201).json({
+    success: true,
+    message: "Recruiter created successfully",
+    data: recruiter,
+  });
+});
+
 module.exports = {
   signup,
   login,
@@ -79,4 +89,5 @@ module.exports = {
   updateUserStatus,
   getRecruiters,
   getRecruiterDetails,
+  createRecruiter,
 };

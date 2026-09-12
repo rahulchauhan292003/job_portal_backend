@@ -1,4 +1,5 @@
 const Job = require("../models/Job");
+const ApiError = require("../utils/ApiError");
 
 const getJobs = async ({
   search = "",
@@ -9,7 +10,9 @@ const getJobs = async ({
   const pageNumber = Math.max(Number(page), 1);
   const limitNumber = Math.min(Math.max(Number(limit), 1), 50);
 
-  const query = {};
+  const query = {
+    status: "active",
+  };
 
   if (search.trim()) {
     query.$or = [
@@ -53,6 +56,7 @@ const createJob = async (jobData, userId) => {
     ...jobData,
     jobId: `job-${Date.now()}`,
     createdBy: userId,
+    status: "active",
   });
 
   return job;
@@ -63,6 +67,9 @@ const getRecruiterJobs = async (recruiterId) => {
     {
       $match: {
         createdBy: recruiterId,
+        status: {
+          $in: ["active", "closed"],
+        },
       },
     },
     {
@@ -81,6 +88,7 @@ const getRecruiterJobs = async (recruiterId) => {
         company: 1,
         location: 1,
         description: 1,
+        status: 1,
         createdAt: 1,
         applicantCount: {
           $size: "$applications",
@@ -97,9 +105,144 @@ const getRecruiterJobs = async (recruiterId) => {
   return jobs;
 };
 
+const updateRecruiterJobStatus = async (jobId, recruiterId, status) => {
+  if (!["active", "closed", "deleted"].includes(status)) {
+    throw new ApiError(400, "Invalid job status");
+  }
+
+  const job = await Job.findOne({
+    jobId,
+    createdBy: recruiterId,
+  });
+
+  if (!job) {
+    throw new ApiError(404, "Job not found");
+  }
+
+  if (job.status === "deleted") {
+    throw new ApiError(400, "Deleted job cannot be reopened");
+  }
+
+  job.status = status;
+
+  await job.save();
+
+  return job;
+};
+
+const getAdminJobs = async ({
+  search = "",
+  status = "",
+  page = 1,
+  limit = 10,
+}) => {
+  const pageNumber = Math.max(Number(page), 1);
+  const limitNumber = Math.min(Math.max(Number(limit), 1), 50);
+
+  const filter = {};
+
+  if (search.trim()) {
+    filter.$or = [
+      {
+        title: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      },
+      {
+        company: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      },
+      {
+        location: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      },
+    ];
+  }
+
+  if (status) {
+    if (!["active", "closed", "deleted"].includes(status)) {
+      throw new ApiError(400, "Invalid job status");
+    }
+
+    filter.status = status;
+  }
+
+  const skip = (pageNumber - 1) * limitNumber;
+
+  const [jobs, total] = await Promise.all([
+    Job.find(filter)
+      .populate("createdBy", "name email")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNumber),
+
+    Job.countDocuments(filter),
+  ]);
+
+  return {
+    jobs,
+    pagination: {
+      page: pageNumber,
+      limit: limitNumber,
+      total,
+      totalPages: Math.ceil(total / limitNumber),
+    },
+  };
+};
+
+const updateAdminJobStatus = async (jobId, status) => {
+  if (!["active", "closed", "deleted"].includes(status)) {
+    throw new ApiError(400, "Invalid job status");
+  }
+
+  const job = await Job.findOne({ jobId });
+
+  if (!job) {
+    throw new ApiError(404, "Job not found");
+  }
+
+  job.status = status;
+
+  await job.save();
+
+  return job;
+};
+
+const updateRecruiterJob = async (jobId, recruiterId, jobData) => {
+  const job = await Job.findOne({
+    jobId,
+    createdBy: recruiterId,
+    status: { $in: ["active", "closed"] },
+  });
+
+  if (!job) {
+    throw new ApiError(404, "Job not found");
+  }
+
+  job.title = jobData.title;
+  job.company = jobData.company;
+  job.location = jobData.location;
+  job.description = jobData.description;
+
+  job.questions = jobData.questions || [];
+
+  await job.save();
+
+  return job;
+};
+
 module.exports = {
   getJobs,
   getJobById,
   createJob,
-   getRecruiterJobs,
+  getRecruiterJobs,
+  updateRecruiterJobStatus,
+  getAdminJobs,
+  updateAdminJobStatus,
+  updateRecruiterJob,
 };

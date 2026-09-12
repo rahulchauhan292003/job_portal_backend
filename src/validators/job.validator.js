@@ -33,6 +33,17 @@ const createJobSchema = yup.object({
   .default([]),
 });
 
+const updateJobStatusSchema = yup.object({
+  status: yup
+    .string()
+    .oneOf(
+      ["active", "closed", "deleted"],
+      "Invalid job status"
+    )
+    .required("Job status is required"),
+});
+
 module.exports = {
   createJobSchema,
+  updateJobStatusSchema
 };
