@@ -48,7 +48,7 @@ router.patch(
 );
 
 // Public - active jobs only
-router.get("/", getJobs);
+router.get("/", authMiddleware, getJobs);
 
 // Get single job
 router.get("/:id", getJobById);

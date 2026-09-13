@@ -10,7 +10,11 @@ const {
 
 // Get all jobs
 const getJobs = asyncHandler(async (req, res) => {
-  const result = await jobService.getJobs(req.query);
+  // console.log("---<<>>>", req.user);
+  const result = await jobService.getJobs({
+    ...req.query,
+    userId: req.user?._id,
+  });
 
   res.status(200).json({
     success: true,
@@ -131,5 +135,5 @@ module.exports = {
   updateRecruiterJobStatusController,
   getAdminJobsController,
   updateAdminJobStatusController,
-  updateRecruiterJobController
+  updateRecruiterJobController,
 };

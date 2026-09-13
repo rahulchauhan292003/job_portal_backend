@@ -233,7 +233,7 @@ const getApplicationsByJob = async (jobId, recruiterId) => {
     job: job._id,
   })
     .populate("applicant", "name email")
-    .populate("job", "jobId title company")
+    .populate("job", "jobId title company questions")
     .sort({ createdAt: -1 });
 
   return applications;

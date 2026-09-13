@@ -1,11 +1,13 @@
 const Job = require("../models/Job");
 const ApiError = require("../utils/ApiError");
+const Application = require("../models/Application");
 
 const getJobs = async ({
   search = "",
   location = "",
   page = 1,
   limit = 10,
+  userId,
 }) => {
   const pageNumber = Math.max(Number(page), 1);
   const limitNumber = Math.min(Math.max(Number(limit), 1), 50);
@@ -16,8 +18,18 @@ const getJobs = async ({
 
   if (search.trim()) {
     query.$or = [
-      { title: { $regex: search.trim(), $options: "i" } },
-      { company: { $regex: search.trim(), $options: "i" } },
+      {
+        title: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      },
+      {
+        company: {
+          $regex: search.trim(),
+          $options: "i",
+        },
+      },
     ];
   }
 
@@ -36,8 +48,28 @@ const getJobs = async ({
     Job.countDocuments(query),
   ]);
 
+  let appliedJobIds = new Set();
+
+  if (userId) {
+    const applications = await Application.find({
+      applicant: userId,
+    }).select("job");
+
+    appliedJobIds = new Set(
+      applications.map((application) => application.job.toString()),
+    );
+  }
+
+  //  applied status
+  const jobsWithAppliedStatus = jobs.map((job) => ({
+    ...job.toObject(),
+
+    applied: appliedJobIds.has(job._id.toString()),
+  }));
+
   return {
-    jobs,
+    jobs: jobsWithAppliedStatus,
+
     pagination: {
       page: pageNumber,
       limit: limitNumber,
